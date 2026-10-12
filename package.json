@@ -1,0 +1,8 @@
+{
+  "name": "robot-photobooth-local",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-first Robot Photobooth",
+  "scripts": { "start": "node server.js", "check": "node --check server.js", "test": "node --test" },
+  "dependencies": { "qrcode": "^1.5.4" }
+}
