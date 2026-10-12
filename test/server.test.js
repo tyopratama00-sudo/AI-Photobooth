@@ -14,7 +14,7 @@ after(async () => {
   server.kill();
   if (sessionId) {
     const file = path.resolve(__dirname, '..', 'storage/sessions', `${sessionId}.json`);
-    try { const s = JSON.parse(fs.readFileSync(file, 'utf8')); for (const p of s.photos || []) fs.rmSync(path.resolve(__dirname, '..', 'storage/photos/original', path.basename(p.url)), { force: true }); if (s.finalExport) fs.rmSync(path.resolve(__dirname, '..', 'storage/exports', path.basename(s.finalExport)), { force: true }); fs.rmSync(file, { force: true }); } catch {}
+    try { const s = JSON.parse(fs.readFileSync(file, 'utf8')); for (const p of s.photos || []) fs.rmSync(path.resolve(__dirname, '..', 'storage/photos/original', path.basename(p.url)), { force: true }); for (const u of [s.finalExport, s.aiExport]) if (u) fs.rmSync(path.resolve(__dirname, '..', 'storage/exports', path.basename(u)), { force: true }); fs.rmSync(file, { force: true }); } catch {}
   }
 });
 
@@ -41,6 +41,13 @@ test('session, validated photo storage, safe media and QR', async () => {
   assert.equal((await (await fetch(`${base}/api/sessions/${sessionId}`)).json()).status, 'completed');
   const exportInfo = await exported.json();
   assert.equal((await fetch(`${base}${exportInfo.url}`)).status, 200);
+  const aiExp = await (await fetch(`${base}/api/sessions/${sessionId}/export`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ data: png, kind: 'ai' }) })).json();
+  assert.notEqual(aiExp.url, exportInfo.url);
+  const after = await (await fetch(`${base}/api/sessions/${sessionId}`)).json();
+  assert.equal(after.finalExport, exportInfo.url, 'AI export keeps frame export separate');
+  assert.equal(after.aiExport, aiExp.url);
+  assert.equal((await fetch(`${base}${aiExp.url}`)).status, 200);
+  assert.match(await (await fetch(`${base}/result/${sessionId}`)).text(), /Unduh foto AI/);
   assert.equal((await fetch(`${base}/api/sessions/${sessionId}/photos/${photo.id}`, { method: 'DELETE' })).status, 200);
   assert.equal((await fetch(`${base}${photo.url}`)).status, 404);
 });

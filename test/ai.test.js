@@ -7,11 +7,12 @@ const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/nZcAAAAASUVORK5CYII=';
+const thoughtPng = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 let reject = false, seen;
 const fake = http.createServer((req, res) => {
   let body = ''; req.on('data', c => body += c); req.on('end', () => {
     seen = { url: req.url, auth: req.headers.authorization, goog: req.headers['x-goog-api-key'], body };
-    const ok = req.url.includes(':generateContent') ? { candidates: [{ content: { parts: [{ text: 'here' }, { inlineData: { mimeType: 'image/png', data: png } }] } }] } : { data: [{ b64_json: png }] };
+    const ok = req.url.includes(':generateContent') ? { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: thoughtPng }, thought: true }, { text: 'here' }, { inlineData: { mimeType: 'image/png', data: png } }] } }] } : { data: [{ b64_json: png }] };
     res.writeHead(reject ? 401 : 200, { 'content-type': 'application/json' });
     res.end(JSON.stringify(reject ? { error: { message: 'Incorrect API key provided: sk-test-secret' } } : ok));
   });
@@ -69,5 +70,7 @@ test('Gemini edit: generateContent with inline image, saves inlineData output', 
   const sent = JSON.parse(seen.body).contents[0].parts;
   assert.match(sent[0].text, /screentone/);
   assert.equal(sent[1].inline_data.data, png);
-  assert.equal((await fetch(base + (await ok.json()).url)).status, 200);
+  const file = await fetch(base + (await ok.json()).url);
+  assert.equal(file.status, 200);
+  assert.equal(Buffer.from(await file.arrayBuffer()).toString('base64'), png, 'saves final image, not thought image');
 });

@@ -11,3 +11,9 @@ test('every AI style has a valid SVG preview illustration', () => {
   assert.equal(keys.length, 34);
   for (const k of keys) assert.match(art(k), /^<svg[\s\S]*<\/svg>$/, k), assert.doesNotMatch(art(k), /undefined|NaN/, k);
 });
+
+test('every preset AI style has a sample photo', () => {
+  const s = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const keys = [...s.matchAll(/^(\w+):\{n:'/gm)].map(m => m[1]).filter(k => k !== 'custom');
+  for (const k of ['base', ...keys]) assert.ok(fs.existsSync(path.join(__dirname, `../public/samples/${k}.jpg`)), `missing public/samples/${k}.jpg (run node scripts/gen-samples.js)`);
+});

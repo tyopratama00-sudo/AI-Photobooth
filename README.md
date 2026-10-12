@@ -26,7 +26,7 @@ Foto ditangkap pada resolusi yang browser/kamera berikan dan disimpan sebagai JP
 ## Batasan mode lokal
 
 - Pembayaran adalah **simulasi**, tidak ada charge atau transaksi sungguhan.
-- AI memakai OpenAI Images Edits API (`/v1/images/edits`); contoh konfigurasi ada di `.env.example`. Salin ke `.env`, lalu isi key baru hanya di file lokal. Key yang pernah dibagikan di chat harus dicabut. Generasi nyata perlu key valid, akses model, dan billing/kuota aktif.
+- AI default memakai Gemini API (`generateContent`, model `gemini-nano-banana-2.1`); OpenAI (`/v1/images/edits`) dan Puter tetap bisa dipilih lewat `AI_PROVIDER`. Contoh konfigurasi ada di `.env.example`. Salin ke `.env`, lalu isi key hanya di file lokal. Key yang pernah dibagikan di chat harus dicabut. Generasi nyata perlu key valid, akses model, dan billing/kuota aktif.
 - Cetak memakai dialog browser setelah JPEG frame disimpan. Tidak ada konfirmasi printer fisik.
 - QR valid menuju halaman hasil lokal. QR bisa dibuka di komputer ini; perangkat lain tidak dapat mencapai `localhost` komputer booth. Akses LAN perlu konfigurasi bind/firewall dan URL LAN, tidak diaktifkan otomatis.
 - Editing frame yang diekspor mendukung foto, crop/zoom, putar, balik, brightness, filter, serta filter demo yang dipilih. Filter demo tetap bukan gambar generatif.
