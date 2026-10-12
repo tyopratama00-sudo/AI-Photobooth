@@ -114,6 +114,20 @@ h2{font-size:64px;font-weight:700;line-height:1.1}
 <script>
 const $=s=>document.querySelector(s),rp=n=>'Rp'+n.toLocaleString('id-ID'),p2=n=>String(n).padStart(2,'0');
 const price=q=>65000+(q-1)*15000;
+let actx=null;
+function getAudio(){if(!actx){const A=window.AudioContext||window.webkitAudioContext;if(A)actx=new A()}if(actx&&actx.state==='suspended')actx.resume();return actx}
+function sfxTone(f,type='sine',d=0.08,v=0.18){try{const a=getAudio();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,a.currentTime);g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+d);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch{}}
+function sfxMelody(notes,speed=0.08,type='triangle',v=0.18){try{const a=getAudio();if(!a)return;notes.forEach((f,i)=>{setTimeout(()=>sfxTone(f,type,speed*1.2,v),i*speed*1000)})}catch{}}
+function sfxShutter(){try{const a=getAudio();if(!a)return;sfxTone(1600,'square',0.03,0.25);setTimeout(()=>{const bs=Math.floor(a.sampleRate*0.09),b=a.createBuffer(1,bs,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<bs;i++)d[i]=Math.random()*2-1;const n=a.createBufferSource();n.buffer=b;const fl=a.createBiquadFilter();fl.type='bandpass';fl.frequency.value=1200;const g=a.createGain();g.gain.setValueAtTime(0.35,a.currentTime);g.gain.exponentialRampToValueAtTime(0.01,a.currentTime+0.09);n.connect(fl);fl.connect(g);g.connect(a.destination);n.start();setTimeout(()=>sfxTone(900,'triangle',0.04,0.2),70)},40)}catch{}}
+const SFX={
+  tap:()=>sfxTone(620,'sine',0.04,0.12),
+  count:n=>sfxTone(n===1?880:540,'triangle',0.12,0.25),
+  shutter:()=>sfxShutter(),
+  coin:()=>sfxMelody([987,1318],0.09,'sine',0.22),
+  cheer:()=>sfxMelody([523,659,784,1046],0.09,'triangle',0.22),
+  fail:()=>sfxMelody([380,290],0.12,'sawtooth',0.18)
+};
+document.addEventListener('pointerdown',e=>{if(e.target.closest('.btn, .card, .th, #wr, .rnd, .chip, .tool, .cmp'))SFX.tap()},{passive:true});
 const FLOW=['welcome','pay','ready','session','review','tpl','pick','aiq','aistyle','aigen','aicmp','edit','final','print','qr','thanks'];
 const NAMES=['Mulai','Bayar','Siap','Sesi','Review','Frame','Pilih foto','AI?','Gaya AI','Melukis','Bandingkan','Edit','Final','Cetak','QR','Terima kasih'];
 const FIL=['','sepia(.5) saturate(1.3)','hue-rotate(-25deg) saturate(1.2)','grayscale(1)','contrast(.9) brightness(1.1) saturate(.8)'],FN=['Asli','Hangat','Dingin','Mono','Lembut'];
@@ -184,7 +198,7 @@ pay:()=>{const q=S.qty,ok=S.pay=='ok',vm=S.vm;return `<div class="scr"><div clas
 <div style="display:flex;gap:12px;align-items:center;margin-top:6px;font-size:24px;color:var(--mu)">Kode uji coba: ${Object.keys(VC).map(k=>`<span class="chip" style="height:48px;font-size:24px;padding:0 20px;cursor:pointer" onclick="S.vcin='${k}';render()">${k}</span>`).join('')}</div></div>
 <div><div class="p" style="font-size:32px">Total</div>${S.vc?`<div class="p" style="text-decoration:line-through;font-size:30px">${rp(price(q))}</div>`:''}<div style="font-size:96px;font-weight:700;line-height:1.05;color:var(--bl)">${rp(due())}</div></div></div>
 <div class="card" style="flex:.85;padding:48px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center">
-${S.pay=='wait'?`<div class="pill w">${IC('clock',34)} Menunggu pembayaran</div><div><div style="font-size:30px;color:var(--mu);margin-bottom:10px">Mode uji coba · menggantikan scan QRIS</div><div style="font-size:84px;font-weight:700">${rp(due())}</div></div><div style="width:100%;display:flex;flex-direction:column;gap:20px"><button class="btn pr" style="height:140px;font-size:56px;width:100%" onclick="payNow()">BAYAR</button><button class="btn sm" style="align-self:center" onclick="S.pay='fail';render()">Simulasi gagal</button></div>`
+${S.pay=='wait'?`<div class="pill w">${IC('clock',34)} Menunggu pembayaran</div><div><div style="font-size:30px;color:var(--mu);margin-bottom:10px">Mode uji coba · menggantikan scan QRIS</div><div style="font-size:84px;font-weight:700">${rp(due())}</div></div><div style="width:100%;display:flex;flex-direction:column;gap:20px"><button class="btn pr" style="height:140px;font-size:56px;width:100%" onclick="payNow()">BAYAR</button><button class="btn sm" style="align-self:center" onclick="S.pay='fail';SFX.fail();render()">Simulasi gagal</button></div>`
  :S.pay=='ok'?`<div class="pill s">${IC('check',34)} Simulasi pembayaran berhasil</div><div id="pr2" style="position:relative;width:300px;height:315px"><div class="ps appear">${R('cheer',300)}</div></div><div><h2>Mode simulasi</h2><p class="p" style="margin-top:8px">Pembayaran belum diproses oleh penyedia pembayaran.</p></div>`
 :`<div class="pill f">${IC('x',34)} Pembayaran gagal</div>${R('think',260)}${bub('Oops! Pembayaran belum berhasil. Yuk coba lagi.')}<button class="btn pr" onclick="S.pay='wait';render()">Coba lagi</button>`}
 </div></div></div>`},
@@ -403,20 +417,20 @@ addEventListener('resize',fit2);
  function jump(i){if(i==1){S.pay='wait';go(FLOW[i])}else if(i>=2&&!S.sessionId){notice('Mulai dari awal lalu gunakan BAYAR untuk membuat sesi lokal.');go('welcome')}else go(FLOW[i])}
  const autoFp=()=>{const n=TPL[S.tpl].n,f=flat();S.fp=f.slice(0,n)};
   function go(s){const pv=S.scr;tok++;S.pb=0;S.big=null;S.scr=s;S.ap=s=='pay'&&pv=='welcome';if(['review','tpl','pick','aiq','aistyle','aigen','aicmp','edit','final'].includes(s))seed();if(['aiq','aistyle','aigen','aicmp','edit','final'].includes(s)&&S.fp.length!=TPL[S.tpl].n)autoFp();if(['aistyle','aigen','aicmp'].includes(s)&&!S.fp.includes(S.ai.pick))S.ai.pick=S.fp[0];if(s=='aigen'){S.ai.on=true;S.ai.use={};S.ai.v={};S.ai.tries=0;S.ai.n=0;S.ai.cur=0}if(s=='aicmp'){S.ai.on=true;if(S.ai.use[S.ai.pick]==null)S.ai.use[S.ai.pick]=true}if(['edit','final','print'].includes(s)&&!hasAi()){if(S.slot=='ai')S.slot=0;S.prn='frame'}if(s=='print'){S.finalUrl=S.aiUrl=null}render(1);if(S.ap)ninjaIn();if(s=='ready')ready();if(s=='aigen')runAi();if(s=='session'){if(S.rt==null){S.photos={};S.sel={};S.retaken=[]}startCamera().then(()=>{render();if(cameraFailure){notice(cameraFailure);return}run(S.rt==null?[0,1,2,3,4,5,6,7,8,9]:[S.rt])}).catch(e=>cameraError(e))}else stopCamera();if(s=='print')printing();persist()}
-function redeem(){const c=(S.vcin||'').trim().toUpperCase();if(!c){S.vc='';S.vm=['er','Masukkan kode voucher dulu'];render();return}if(!VC[c]){S.vc='';S.vm=['er','Kode tidak ditemukan'];render();return}S.vc=c;S.vm=['ok',VC[c].t];render();if(due()==0){const t=tok;setTimeout(()=>{if(tok==t)payNow()},700)}}
- async function payNow(){if(S.pay!='wait'||S.pb)return;S.pb=1;try{const r=await fetch('/api/sessions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({quantity:S.qty})});if(!r.ok)throw Error('Server lokal tidak dapat membuat sesi');S.sessionId=(await r.json()).id;localStorage.setItem('robotPhotoSession',S.sessionId);await persist()}catch(e){S.pb=0;notice(e.message);return}S.pb=1;S.pay='ok';render();const t=tok,b=$('#pr2');b&&(puffs(b,300,315,7),setTimeout(()=>puffs(b,300,315,4),300));
+function redeem(){const c=(S.vcin||'').trim().toUpperCase();if(!c){S.vc='';S.vm=['er','Masukkan kode voucher dulu'];SFX.fail();render();return}if(!VC[c]){S.vc='';S.vm=['er','Kode tidak ditemukan'];SFX.fail();render();return}S.vc=c;S.vm=['ok',VC[c].t];SFX.coin();render();if(due()==0){const t=tok;setTimeout(()=>{if(tok==t)payNow()},700)}}
+ async function payNow(){if(S.pay!='wait'||S.pb)return;S.pb=1;try{const r=await fetch('/api/sessions',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({quantity:S.qty})});if(!r.ok)throw Error('Server lokal tidak dapat membuat sesi');S.sessionId=(await r.json()).id;localStorage.setItem('robotPhotoSession',S.sessionId);await persist()}catch(e){S.pb=0;SFX.fail();notice(e.message);return}S.pb=1;S.pay='ok';SFX.coin();render();const t=tok,b=$('#pr2');b&&(puffs(b,300,315,7),setTimeout(()=>puffs(b,300,315,4),300));
 setTimeout(()=>{if(tok!==t)return;const r=$('#pr2 .ps');r&&(r.className='ps flyoff')},2000);
 setTimeout(()=>{if(tok!==t)return;go('ready');F.x=-380;F.vx=1500;F.vy=0;F.y=250+Math.random()*350;F.t=0},2800)}
 function sq(d){if(S.pay=='ok')return;S.qty=Math.max(1,Math.min(10,S.qty+d));S.pay='wait';render()}
 const wait=(ms,t)=>new Promise((r,j)=>setTimeout(()=>tok===t?r():j(),S.fast?ms/10:ms));
- async function ready(){const t=tok;try{for(S.cd=5;S.cd>0;S.cd--){render();await wait(900,t)}go('session')}catch(e){}}
+ async function ready(){const t=tok;try{for(S.cd=5;S.cd>0;S.cd--){SFX.count(S.cd<=3?S.cd:2);render();await wait(900,t)}go('session')}catch(e){}}
   function skipToReview(){if(S.scr!=='session'||S.rt!=null||S.ang<2)return;tok++;S.rt=null;go('review')}
   async function run(list){const t=tok;try{for(const a of list){if(tok!==t)return;S.ang=a;S.shot=0;S.phase='move';render();await wait(1300,t);
  for(let k=1;k<=2;k++){S.shot=k;S.phase='prep';render();await wait(2600,t);S.phase='cd';render();
- for(const n of[3,2,1]){cd(n);await wait(650,t)}cd(IC('cam',240,'#fff'));const f=$('#fl');f&&(f.className='fl go');await takePhoto(a,k,t);
+ for(const n of[3,2,1]){cd(n);await wait(650,t)}cd(IC('cam',240,'#fff'));const f=$('#fl');f&&(f.className='fl go');SFX.shutter();await takePhoto(a,k,t);
  if((S.sel[a]||[]).length<2)S.sel[a]=S.photos[a].slice(0,2);await wait(500,t);S.phase='nice';render();await wait(800,t)}}
   if(tok!==t)return;S.rt=null;go('review')}catch(e){if(e.message!=='cancelled')notice(e.message||'Sesi foto berhenti. Coba lagi.')}}
-function cd(n){const c=$('#cd');if(c){c.className='cd pop';c.style.animation='none';c.offsetWidth;c.style.animation='';c.innerHTML=n}}
+function cd(n){const c=$('#cd');if(c){c.className='cd pop';c.style.animation='none';c.offsetWidth;c.style.animation='';c.innerHTML=n;if(typeof n==='number')SFX.count(n)}}
  async function tg(a,id){if(S.photos[a].length<=2){S.big=id;render();return}const s=S.sel[a]||[];if(s.includes(id))return;if(s.length<2)s.push(id);else s.shift(),s.push(id);S.sel[a]=s;render();react('thumbs','wob','Pilihan bagus!',null,1.2)}
  async function retake(a){S.retaken.push(a);S.rt=a;S.photos[a]=[];S.sel[a]=[];tok++;S.scr='session';render(1);await startCamera();if(cameraFailure){notice(cameraFailure);render();return}run([a])}
  async function retryCamera(){await startCamera();render();if(cameraFailure){notice(cameraFailure);return}run(S.rt==null?[0,1,2,3,4,5,6,7,8,9]:[S.rt])}
@@ -436,7 +450,7 @@ if(p.length==1){e.x=b.e.x+(p[0].x-b.p[0].x)/b.k;e.y=b.e.y+(p[0].y-b.p[0].y)/b.k}
 else if(b.d){const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),a=Math.atan2(p[1].y-p[0].y,p[1].x-p[0].x);e.z=Math.max(.6,Math.min(4,b.e.z*d/b.d));e.r=b.e.r+(a-b.a)*180/Math.PI;e.x=b.e.x+((p[0].x+p[1].x)-(b.p[0].x+b.p[1].x))/2/b.k;e.y=b.e.y+((p[0].y+p[1].y)-(b.p[0].y+b.p[1].y))/2/b.k}
 const n=$('#s'+S.slot);n&&(n.style.cssText=tf(e))}
 function pu(ev){PT.delete(ev.pointerId);if(PT.size){snap();return}removeEventListener('pointermove',pm);removeEventListener('pointerup',pu);removeEventListener('pointercancel',pu);pd.on=0;base=null;if(S.scr=='edit')render()}
- async function printing(){const t=tok;try{for(S.pr=0;S.pr<=100;S.pr+=2){const b=$('#pb'),x=$('#pt');b&&(b.style.width=S.pr+'%');x&&(x.textContent='Menyiapkan frame lokal… '+S.pr+'%');await wait(60,t)}if(S.sessionId){await exportFinal();if(hasAi()&&S.ai.real?.[S.ai.pick])await exportAi()}go('qr')}catch(e){notice('Frame belum tersimpan: '+e.message);go('qr')}}
+ async function printing(){const t=tok;try{for(S.pr=0;S.pr<=100;S.pr+=2){const b=$('#pb'),x=$('#pt');b&&(b.style.width=S.pr+'%');x&&(x.textContent='Menyiapkan frame lokal… '+S.pr+'%');await wait(60,t)}if(S.sessionId){await exportFinal();if(hasAi()&&S.ai.real?.[S.ai.pick])await exportAi()}SFX.cheer();go('qr')}catch(e){notice('Frame belum tersimpan: '+e.message);go('qr')}}
  async function initLocal(){try{const r=await fetch('/api/health');if(!r.ok)throw Error();const health=await r.json();AI_REAL=!!health.aiConfigured;PUTER_MODEL=health.aiModel||'';const id=localStorage.getItem('robotPhotoSession');if(id){const s=await fetch('/api/sessions/'+id);if(s.ok){const data=await s.json();S.sessionId=id;S.qty=data.quantity||1;for(const p of data.photos||[]){photoFiles[p.id]=p.url;S.photoMeta??={};S.photoMeta[p.id]=p;if(Number.isInteger(p.angle)){S.photos[p.angle]??=[];if(!S.photos[p.angle].includes(p.id))S.photos[p.angle].push(p.id);if(S.photos[p.angle].length<=2)S.sel[p.angle]=[...S.photos[p.angle]]}}S.ai.real=Object.fromEntries((data.aiPhotos||[]).map(p=>[p.sourcePhotoId,p]));for(const p of data.aiPhotos||[])photoFiles[p.id]=p.url;S.fp=data.selectedPhotos||[];S.tpl=Math.max(0,TPL.findIndex(t=>t.t===data.template));S.finalUrl=data.finalExport||null;S.aiUrl=data.aiExport||null}}}catch{notice('Server lokal tidak tersambung. Jalankan npm start; kamera dan simpanan perlu server.') }}
  S.scr='welcome';fit2();render();initLocal();
 </script></body></html>

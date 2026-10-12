@@ -17,3 +17,9 @@ test('every preset AI style has a sample photo', () => {
   const keys = [...s.matchAll(/^(\w+):\{n:'/gm)].map(m => m[1]).filter(k => k !== 'custom');
   for (const k of ['base', ...keys]) assert.ok(fs.existsSync(path.join(__dirname, `../public/samples/${k}.jpg`)), `missing public/samples/${k}.jpg (run node scripts/gen-samples.js)`);
 });
+
+test('kiosk UI includes audio SFX engine', () => {
+  const s = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  assert.match(s, /const SFX=\{/);
+  assert.match(s, /sfxShutter/);
+});
